@@ -26,13 +26,15 @@ var (
 const httpingUserAgent = "qBittorrent/4.6.5"
 
 type HTTPingOptions struct {
-	URL           string
-	Attempts      int
-	Timeout       time.Duration
-	ValidStatuses []int
-	TopN          int
-	MaxIPs        int
-	Concurrency   int
+	URL             string
+	Attempts        int
+	Timeout         time.Duration
+	ValidStatuses   []int
+	TopN            int
+	MaxIPs          int
+	Concurrency     int
+	UserAgent       string
+	AcceptAnyStatus bool
 }
 
 type HTTPingResult struct {
@@ -112,7 +114,7 @@ func HTTPing(ctx context.Context, opts HTTPingOptions) HTTPingResult {
 	var lastErr error
 	for i := 0; i < opts.Attempts; i++ {
 		start := time.Now()
-		status, colo, err := head(ctx, client, opts.URL)
+		status, colo, err := head(ctx, client, opts.URL, opts.UserAgent)
 		if err != nil {
 			lastErr = fmt.Errorf("attempt %d/%d request failed: %w", i+1, opts.Attempts, err)
 			log.Printf("httping attempt failed url=%q attempt=%d/%d error=%v", opts.URL, i+1, opts.Attempts, err)
@@ -122,7 +124,7 @@ func HTTPing(ctx context.Context, opts HTTPingOptions) HTTPingResult {
 		if result.Colo == "" {
 			result.Colo = colo
 		}
-		if !validStatus(status, opts.ValidStatuses) {
+		if !opts.AcceptAnyStatus && !validStatus(status, opts.ValidStatuses) {
 			lastErr = fmt.Errorf("unexpected status code %d (valid: %s)", status, formatStatuses(opts.ValidStatuses))
 			log.Printf("httping attempt returned unexpected status url=%q attempt=%d/%d status=%d valid=%s colo=%q", opts.URL, i+1, opts.Attempts, status, formatStatuses(opts.ValidStatuses), colo)
 			continue
@@ -252,7 +254,7 @@ func httpingIP(ctx context.Context, opts HTTPingOptions, ip, port string) TopIP 
 	successes := 0
 	for i := 0; i < opts.Attempts; i++ {
 		start := time.Now()
-		code, nextColo, err := head(ctx, client, opts.URL)
+		code, nextColo, err := head(ctx, client, opts.URL, opts.UserAgent)
 		if err != nil {
 			lastErr = err
 			continue
@@ -261,7 +263,7 @@ func httpingIP(ctx context.Context, opts HTTPingOptions, ip, port string) TopIP 
 		if colo == "" {
 			colo = nextColo
 		}
-		if !validStatus(code, opts.ValidStatuses) {
+		if !opts.AcceptAnyStatus && !validStatus(code, opts.ValidStatuses) {
 			lastErr = fmt.Errorf("unexpected status code %d", code)
 			continue
 		}
@@ -393,12 +395,15 @@ func formatTopIPs(top []TopIP) string {
 	return strings.Join(parts, ",")
 }
 
-func head(ctx context.Context, client *http.Client, url string) (int, string, error) {
+func head(ctx context.Context, client *http.Client, url string, userAgent string) (int, string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
 	if err != nil {
 		return 0, "", err
 	}
-	req.Header.Set("User-Agent", httpingUserAgent)
+	if strings.TrimSpace(userAgent) == "" {
+		userAgent = httpingUserAgent
+	}
+	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "*/*")
 	resp, err := client.Do(req)
 	if err != nil {

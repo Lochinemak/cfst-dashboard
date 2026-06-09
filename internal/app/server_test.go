@@ -69,13 +69,16 @@ func TestSetupLoginAndAgentFlow(t *testing.T) {
 	}
 
 	var target store.Target
-	post(t, client, server.URL+"/api/hosts/"+strconv.FormatInt(host.ID, 10)+"/targets", map[string]any{"url": "example.com"}, http.StatusOK, &target)
-	patch(t, client, server.URL+"/api/targets/"+strconv.FormatInt(target.ID, 10), map[string]any{"url": target.URL, "interval_seconds": 60, "disabled": true}, http.StatusOK, &target)
+	post(t, client, server.URL+"/api/hosts/"+strconv.FormatInt(host.ID, 10)+"/targets", map[string]any{"url": "example.com", "user_agent": "curl/8"}, http.StatusOK, &target)
+	patch(t, client, server.URL+"/api/targets/"+strconv.FormatInt(target.ID, 10), map[string]any{"url": target.URL, "interval_seconds": 60, "disabled": true, "user_agent": "Transmission/4.0"}, http.StatusOK, &target)
 	if target.IntervalSeconds != 60 {
 		t.Fatalf("expected updated interval 60, got %d", target.IntervalSeconds)
 	}
 	if !target.Disabled {
 		t.Fatal("expected target disabled")
+	}
+	if target.UserAgent != "Transmission/4.0" {
+		t.Fatalf("expected updated user agent, got %q", target.UserAgent)
 	}
 
 	var imported struct {

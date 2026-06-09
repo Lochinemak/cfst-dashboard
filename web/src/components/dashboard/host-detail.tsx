@@ -137,20 +137,20 @@ export function HostDetail({ host, targets, measurements, onChanged, onRename, o
         targets={targets}
         measurementsByTarget={grouped}
         measurementsCount={measurements.length}
-        onCreate={async (url, interval) => {
-          await api.createTarget(host.id, url, interval);
+        onCreate={async (url, interval, userAgent) => {
+          await api.createTarget(host.id, url, interval, userAgent);
           await onChanged();
         }}
-        onUpdate={async (target, interval) => {
-          await api.updateTarget(target, { interval_seconds: interval });
+        onUpdate={async (target, patch) => {
+          await api.updateTarget(target, patch);
           await onChanged();
         }}
         onToggle={async (target, disabled) => {
           await api.updateTarget(target, { disabled });
           await onChanged();
         }}
-        onImport={async (text, interval) => {
-          const result = await api.importTargets(host.id, text, interval);
+        onImport={async (text, interval, userAgent) => {
+          const result = await api.importTargets(host.id, text, interval, userAgent);
           await onChanged();
           return result;
         }}

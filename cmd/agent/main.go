@@ -19,7 +19,7 @@ import (
 	"cfst-dashboard/internal/model"
 )
 
-const version = "0.1.0"
+const version = "0.1.1"
 
 type config struct {
 	Server string `json:"server"`
@@ -90,7 +90,7 @@ func runOnce(cfg config, nextRun map[int64]time.Time) error {
 			continue
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		result := cfst.HTTPing(ctx, cfst.HTTPingOptions{URL: target.URL, Attempts: 4, Timeout: 2 * time.Second})
+		result := cfst.HTTPing(ctx, cfst.HTTPingOptions{URL: target.URL, Attempts: 4, Timeout: 2 * time.Second, UserAgent: target.UserAgent, AcceptAnyStatus: true})
 		cancel()
 		if !result.Success {
 			log.Printf("httping target failed target_id=%d url=%q status=%d successes=%d/%d failure_rate=%.2f colo=%q error=%q top_ips=%d", target.ID, target.URL, result.StatusCode, result.Successes, result.Attempts, result.FailureRate, result.Colo, result.Error, len(result.TopIPs))

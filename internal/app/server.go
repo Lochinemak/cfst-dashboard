@@ -207,12 +207,13 @@ func (s *Server) handleHostSubroutes(w http.ResponseWriter, r *http.Request) {
 			var req struct {
 				URL             string `json:"url"`
 				IntervalSeconds int    `json:"interval_seconds"`
+				UserAgent       string `json:"user_agent"`
 			}
 			if err := readJSON(r, &req); err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
 			}
-			target, err := s.store.AddTarget(id, req.URL, req.IntervalSeconds)
+			target, err := s.store.AddTarget(id, req.URL, req.IntervalSeconds, req.UserAgent)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -226,6 +227,7 @@ func (s *Server) handleHostSubroutes(w http.ResponseWriter, r *http.Request) {
 				Text            string   `json:"text"`
 				URLs            []string `json:"urls"`
 				IntervalSeconds int      `json:"interval_seconds"`
+				UserAgent       string   `json:"user_agent"`
 			}
 			if err := readJSON(r, &req); err != nil {
 				writeError(w, http.StatusBadRequest, err)
@@ -235,7 +237,7 @@ func (s *Server) handleHostSubroutes(w http.ResponseWriter, r *http.Request) {
 			if req.Text != "" {
 				urls = append(urls, splitImportText(req.Text)...)
 			}
-			targets, skipped, err := s.store.ImportTargets(id, urls, req.IntervalSeconds)
+			targets, skipped, err := s.store.ImportTargets(id, urls, req.IntervalSeconds, req.UserAgent)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err)
 				return
@@ -273,12 +275,13 @@ func (s *Server) handleTargetSubroutes(w http.ResponseWriter, r *http.Request) {
 			URL             string `json:"url"`
 			IntervalSeconds int    `json:"interval_seconds"`
 			Disabled        bool   `json:"disabled"`
+			UserAgent       string `json:"user_agent"`
 		}
 		if err := readJSON(r, &req); err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		target, err := s.store.UpdateTarget(id, req.URL, req.IntervalSeconds, req.Disabled)
+		target, err := s.store.UpdateTarget(id, req.URL, req.IntervalSeconds, req.Disabled, req.UserAgent)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return

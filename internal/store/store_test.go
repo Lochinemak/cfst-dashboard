@@ -117,7 +117,7 @@ func TestUpdateAndDeleteHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := st.AddTarget(host.ID, "example.com", 300)
+	target, err := st.AddTarget(host.ID, "example.com", 300, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +164,7 @@ func TestCleanupRemovesOldMeasurements(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := st.AddTarget(host.ID, "example.com", 300)
+	target, err := st.AddTarget(host.ID, "example.com", 300, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,11 +197,11 @@ func TestUpdateTargetInterval(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	target, err := st.AddTarget(host.ID, "example.com", 300)
+	target, err := st.AddTarget(host.ID, "example.com", 300, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	updated, err := st.UpdateTarget(target.ID, "https://example.com/health", 60, true)
+	updated, err := st.UpdateTarget(target.ID, "https://example.com/health", 60, true, "Transmission/4.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,6 +213,9 @@ func TestUpdateTargetInterval(t *testing.T) {
 	}
 	if !updated.Disabled {
 		t.Fatal("expected target to be disabled")
+	}
+	if updated.UserAgent != "Transmission/4.0" {
+		t.Fatalf("unexpected user agent %q", updated.UserAgent)
 	}
 	enabled, err := st.ListEnabledTargets(host.ID)
 	if err != nil {
@@ -229,14 +232,17 @@ func TestImportTargetsSkipsExisting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := st.AddTarget(host.ID, "example.com", 300); err != nil {
+	if _, err := st.AddTarget(host.ID, "example.com", 300, "qBittorrent/4.6.5"); err != nil {
 		t.Fatal(err)
 	}
-	created, skipped, err := st.ImportTargets(host.ID, []string{"example.com", "https://example.org", "https://example.org"}, 60)
+	created, skipped, err := st.ImportTargets(host.ID, []string{"example.com", "https://example.org", "https://example.org"}, 60, "curl/8")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(created) != 1 || skipped != 2 {
 		t.Fatalf("expected 1 created and 2 skipped, got created=%#v skipped=%d", created, skipped)
+	}
+	if created[0].UserAgent != "curl/8" {
+		t.Fatalf("unexpected imported user agent %q", created[0].UserAgent)
 	}
 }

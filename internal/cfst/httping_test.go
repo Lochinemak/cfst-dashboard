@@ -48,3 +48,29 @@ func TestHTTPingUnexpectedStatus(t *testing.T) {
 		t.Fatalf("expected full failure rate, got %f", result.FailureRate)
 	}
 }
+
+func TestHTTPingAcceptAnyStatus(t *testing.T) {
+	var gotUA string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUA = r.UserAgent()
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	result := HTTPing(context.Background(), HTTPingOptions{
+		URL:             server.URL,
+		Attempts:        1,
+		Timeout:         time.Second,
+		UserAgent:       "Transmission/4.0",
+		AcceptAnyStatus: true,
+	})
+	if !result.Success {
+		t.Fatalf("expected success for received HTTP response, got error %q", result.Error)
+	}
+	if result.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d", result.StatusCode)
+	}
+	if gotUA != "Transmission/4.0" {
+		t.Fatalf("expected custom user agent, got %q", gotUA)
+	}
+}

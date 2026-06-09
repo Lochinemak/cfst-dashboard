@@ -20,6 +20,7 @@ type Target struct {
 	HostID          int64     `json:"host_id"`
 	URL             string    `json:"url"`
 	IntervalSeconds int       `json:"interval_seconds"`
+	UserAgent       string    `json:"user_agent"`
 	Disabled        bool      `json:"disabled"`
 	CreatedAt       time.Time `json:"created_at"`
 }

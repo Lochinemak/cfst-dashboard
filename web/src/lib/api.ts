@@ -32,23 +32,24 @@ export const api = {
     request<Host>(`/api/hosts/${hostID}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   deleteHost: (hostID: number) => request<{ ok: boolean }>(`/api/hosts/${hostID}`, { method: "DELETE" }),
   targets: (hostID: number) => request<Target[]>(`/api/hosts/${hostID}/targets`),
-  createTarget: (hostID: number, url: string, intervalSeconds: number) =>
+  createTarget: (hostID: number, url: string, intervalSeconds: number, userAgent = "") =>
     request<Target>(`/api/hosts/${hostID}/targets`, {
       method: "POST",
-      body: JSON.stringify({ url, interval_seconds: intervalSeconds }),
+      body: JSON.stringify({ url, interval_seconds: intervalSeconds, user_agent: userAgent }),
     }),
-  importTargets: (hostID: number, text: string, intervalSeconds: number) =>
+  importTargets: (hostID: number, text: string, intervalSeconds: number, userAgent = "") =>
     request<{ created: Target[]; skipped: number }>(`/api/hosts/${hostID}/targets/import`, {
       method: "POST",
-      body: JSON.stringify({ text, interval_seconds: intervalSeconds }),
+      body: JSON.stringify({ text, interval_seconds: intervalSeconds, user_agent: userAgent }),
     }),
-  updateTarget: (target: Target, patch: Partial<Pick<Target, "interval_seconds" | "disabled" | "url">>) =>
+  updateTarget: (target: Target, patch: Partial<Pick<Target, "interval_seconds" | "disabled" | "url" | "user_agent">>) =>
     request<Target>(`/api/targets/${target.id}`, {
       method: "PATCH",
       body: JSON.stringify({
         url: patch.url ?? target.url,
         interval_seconds: patch.interval_seconds ?? target.interval_seconds,
         disabled: patch.disabled ?? target.disabled,
+        user_agent: patch.user_agent ?? target.user_agent,
       }),
     }),
   deleteTarget: (targetID: number) => request<{ ok: boolean }>(`/api/targets/${targetID}`, { method: "DELETE" }),

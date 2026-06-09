@@ -79,8 +79,8 @@ journalctl -u cfst-dashboard -f
 GitHub Actions builds release artifacts only when a version tag is pushed:
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The workflow runs tests, builds `dist/*`, uploads a workflow artifact, creates a

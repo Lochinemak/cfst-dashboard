@@ -66,6 +66,9 @@ func (s *Store) migrate() error {
 	if err := s.ensureColumn("targets", "disabled", "integer not null default 0"); err != nil {
 		return err
 	}
+	if err := s.ensureColumn("targets", "user_agent", "text not null default ''"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -406,14 +409,15 @@ func (s *Store) AuthenticateAgent(hostID int64, secret string) (bool, error) {
 	return ok, nil
 }
 
-func (s *Store) AddTarget(hostID int64, rawURL string, interval int) (Target, error) {
+func (s *Store) AddTarget(hostID int64, rawURL string, interval int, userAgent string) (Target, error) {
 	normalized, err := normalizeURL(rawURL)
 	if err != nil {
 		return Target{}, err
 	}
 	interval = normalizeInterval(interval)
+	userAgent = normalizeUserAgent(userAgent)
 	now := time.Now().UTC()
-	res, err := s.db.Exec(`insert into targets(host_id, url, interval_seconds, created_at) values(?,?,?,?)`, hostID, normalized, interval, now)
+	res, err := s.db.Exec(`insert into targets(host_id, url, interval_seconds, user_agent, created_at) values(?,?,?,?,?)`, hostID, normalized, interval, userAgent, now)
 	if err != nil {
 		return Target{}, err
 	}
@@ -421,11 +425,12 @@ func (s *Store) AddTarget(hostID int64, rawURL string, interval int) (Target, er
 	if err != nil {
 		return Target{}, err
 	}
-	return Target{ID: id, HostID: hostID, URL: normalized, IntervalSeconds: interval, CreatedAt: now}, nil
+	return Target{ID: id, HostID: hostID, URL: normalized, IntervalSeconds: interval, UserAgent: userAgent, CreatedAt: now}, nil
 }
 
-func (s *Store) ImportTargets(hostID int64, rawURLs []string, interval int) ([]Target, int, error) {
+func (s *Store) ImportTargets(hostID int64, rawURLs []string, interval int, userAgent string) ([]Target, int, error) {
 	interval = normalizeInterval(interval)
+	userAgent = normalizeUserAgent(userAgent)
 	existing, err := s.targetURLSet(hostID)
 	if err != nil {
 		return nil, 0, err
@@ -442,7 +447,7 @@ func (s *Store) ImportTargets(hostID int64, rawURLs []string, interval int) ([]T
 			skipped++
 			continue
 		}
-		target, err := s.AddTarget(hostID, normalized, interval)
+		target, err := s.AddTarget(hostID, normalized, interval, userAgent)
 		if err != nil {
 			return nil, skipped, err
 		}
@@ -452,13 +457,14 @@ func (s *Store) ImportTargets(hostID int64, rawURLs []string, interval int) ([]T
 	return created, skipped, nil
 }
 
-func (s *Store) UpdateTarget(id int64, rawURL string, interval int, disabled bool) (Target, error) {
+func (s *Store) UpdateTarget(id int64, rawURL string, interval int, disabled bool, userAgent string) (Target, error) {
 	normalized, err := normalizeURL(rawURL)
 	if err != nil {
 		return Target{}, err
 	}
 	interval = normalizeInterval(interval)
-	if _, err := s.db.Exec(`update targets set url = ?, interval_seconds = ?, disabled = ? where id = ?`, normalized, interval, boolInt(disabled), id); err != nil {
+	userAgent = normalizeUserAgent(userAgent)
+	if _, err := s.db.Exec(`update targets set url = ?, interval_seconds = ?, disabled = ?, user_agent = ? where id = ?`, normalized, interval, boolInt(disabled), userAgent, id); err != nil {
 		return Target{}, err
 	}
 	t, err := s.getTarget(id)
@@ -477,7 +483,7 @@ func (s *Store) ListEnabledTargets(hostID int64) ([]Target, error) {
 }
 
 func (s *Store) listTargets(hostID int64, enabledOnly bool) ([]Target, error) {
-	query := `select id, host_id, url, interval_seconds, disabled, created_at from targets where host_id = ?`
+	query := `select id, host_id, url, interval_seconds, user_agent, disabled, created_at from targets where host_id = ?`
 	if enabledOnly {
 		query += ` and disabled = 0`
 	}
@@ -561,7 +567,7 @@ func (s *Store) getHost(id int64) (Host, error) {
 }
 
 func (s *Store) getTarget(id int64) (Target, error) {
-	row := s.db.QueryRow(`select id, host_id, url, interval_seconds, disabled, created_at from targets where id = ?`, id)
+	row := s.db.QueryRow(`select id, host_id, url, interval_seconds, user_agent, disabled, created_at from targets where id = ?`, id)
 	return scanTarget(row)
 }
 
@@ -572,7 +578,7 @@ type targetScanner interface {
 func scanTarget(scanner targetScanner) (Target, error) {
 	var t Target
 	var disabled int
-	if err := scanner.Scan(&t.ID, &t.HostID, &t.URL, &t.IntervalSeconds, &disabled, &t.CreatedAt); err != nil {
+	if err := scanner.Scan(&t.ID, &t.HostID, &t.URL, &t.IntervalSeconds, &t.UserAgent, &disabled, &t.CreatedAt); err != nil {
 		return t, err
 	}
 	t.Disabled = disabled == 1
@@ -619,6 +625,16 @@ func normalizeInterval(interval int) int {
 		return 10
 	}
 	return interval
+}
+
+func normalizeUserAgent(userAgent string) string {
+	userAgent = strings.TrimSpace(userAgent)
+	userAgent = strings.ReplaceAll(userAgent, "\r", " ")
+	userAgent = strings.ReplaceAll(userAgent, "\n", " ")
+	if len(userAgent) > 512 {
+		return userAgent[:512]
+	}
+	return userAgent
 }
 
 func installCommand(publicURL, token string) string {

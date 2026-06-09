@@ -16,6 +16,7 @@ export interface Target {
   host_id: number;
   url: string;
   interval_seconds: number;
+  user_agent: string;
   disabled: boolean;
   created_at: string;
 }
