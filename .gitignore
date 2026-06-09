@@ -5,8 +5,8 @@
 dist/
 cfst-dashboard
 cfst-agent
-server
-agent
+/server
+/agent
 
 # Web dependencies and build output
 web/node_modules/
