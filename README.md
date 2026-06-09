@@ -74,6 +74,19 @@ systemctl status cfst-dashboard
 journalctl -u cfst-dashboard -f
 ```
 
+## Release builds
+
+GitHub Actions builds release artifacts only when a version tag is pushed:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow runs tests, builds `dist/*`, uploads a workflow artifact, creates a
+GitHub Release for the tag, and attaches the dashboard and agent binaries as
+release assets. Regular pushes to `main` do not run the release build.
+
 ## Configuration
 
 Server environment variables:
