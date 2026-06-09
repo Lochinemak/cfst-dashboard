@@ -1,0 +1,26 @@
+.DS_Store
+
+# Local database and generated binaries
+*.db
+dist/
+cfst-dashboard
+cfst-agent
+server
+agent
+
+# Web dependencies and build output
+web/node_modules/
+web/dist/
+web/tsconfig.tsbuildinfo
+
+# Logs and local env files
+*.log
+.env
+.env.*
+
+# Local Codex agent skills
+.agents/
+skills-lock.json
+
+# Upstream reference checkout, not required by the dashboard build
+CloudflareSpeedTest/
